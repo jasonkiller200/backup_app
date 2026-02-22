@@ -1,1 +1,261 @@
-@echo offchcp 65001 >nultitle Flask å‚™ä»½å·¥å…· - Windows é–‹æ©Ÿè‡ªå‹•åŸ·è¡Œè¨­å®šclsecho ==========================================echo  Flask å¤šå°ˆæ¡ˆå‚™ä»½å·¥å…· - è‡ªå‹•å•Ÿå‹•è¨­å®šecho ==========================================echo.REM ç²å–ç•¶å‰ç›®éŒ„set "SCRIPT_DIR=%~dp0"set "SCRIPT_PATH=%SCRIPT_DIR%flask_multi_backup.py"set "PYTHON_CMD=pythonw"REM æª¢æŸ¥ Python æ˜¯å¦å®‰è£%PYTHON_CMD% --version >nul 2>&1if errorlevel 1 (    echo [éŒ¯èª¤] æœªæ‰¾åˆ° pythonw.exeï¼Œè«‹ç¢ºèª Python å·²å®‰è£ä¸¦åŠ å…¥ç’°å¢ƒè®Šæ•¸    pause    exit /b 1)echo åµæ¸¬åˆ° Python å®‰è£echo.echo è«‹é¸æ“‡è¨­å®šæ–¹å¼ï¼šecho.echo  [1] å·¥ä½œæŽ’ç¨‹å™¨ (æŽ¨è–¦) - å¯è¨­å®šè§¸ç™¼æ¢ä»¶ã€å»¶é²å•Ÿå‹•echo  [2] å•Ÿå‹•è³‡æ–™å¤¾ - æœ€ç°¡å–®ï¼Œç™»å…¥æ™‚è‡ªå‹•åŸ·è¡Œecho  [3] è¨»å†Šè¡¨ Run éµ - ç³»çµ±ç´šè‡ªå‹•å•Ÿå‹•echo  [4] å»ºç«‹ Windows æœå‹™ - èƒŒæ™¯åŸ·è¡Œï¼Œç„¡éœ€ç™»å…¥echo  [5] ç§»é™¤æ‰€æœ‰è‡ªå‹•å•Ÿå‹•è¨­å®šecho  [0] å–æ¶ˆecho.set /p choice="è«‹è¼¸å…¥é¸é … (0-5): "if "%choice%"=="1" goto :task_schedulerif "%choice%"=="2" goto :startup_folderif "%choice%"=="3" goto :registryif "%choice%"=="4" goto :windows_serviceif "%choice%"=="5" goto :remove_allif "%choice%"=="0" goto :cancelgoto :invalid:task_schedulerecho.echo [å·¥ä½œæŽ’ç¨‹å™¨è¨­å®š]echo æ­£åœ¨å»ºç«‹æŽ’ç¨‹å·¥ä½œ...REM å»ºç«‹å•Ÿå‹•è…³æœ¬set "STARTUP_SCRIPT=%SCRIPT_DIR%start_backup_silent.bat"echo @echo off > "%STARTUP_SCRIPT%"echo cd /d "%SCRIPT_DIR%" >> "%STARTUP_SCRIPT%"echo start /min "" pythonw flask_multi_backup.py --silent >> "%STARTUP_SCRIPT%"REM åˆªé™¤èˆŠçš„æŽ’ç¨‹å·¥ä½œï¼ˆå¦‚æžœå­˜åœ¨ï¼‰schtasks /delete /tn "FlaskMultiBackup" /f >nul 2>&1REM å»ºç«‹æ–°çš„æŽ’ç¨‹å·¥ä½œï¼ˆç™»å…¥æ™‚å•Ÿå‹•ï¼Œå»¶é² 30 ç§’ï¼‰schtasks /create /tn "FlaskMultiBackup" /tr "\"%STARTUP_SCRIPT%\"" /sc onlogon /delay 0000:30 /rl highest /f >nul 2>&1if errorlevel 1 (    echo [éŒ¯èª¤] å»ºç«‹æŽ’ç¨‹å·¥ä½œå¤±æ•—ï¼Œè«‹ä»¥ç³»çµ±ç®¡ç†å“¡èº«åˆ†åŸ·è¡Œ    pause    exit /b 1)echo [æˆåŠŸ] æŽ’ç¨‹å·¥ä½œå·²å»ºç«‹ï¼echo.echo è¨­å®šå…§å®¹ï¼šecho   - å·¥ä½œåç¨±: FlaskMultiBackupecho   - è§¸ç™¼æ¢ä»¶: ä½¿ç”¨è€…ç™»å…¥æ™‚echo   - å»¶é²å•Ÿå‹•: 30 ç§’echo   - åŸ·è¡Œæ¬Šé™: æœ€é«˜æ¬Šé™echo   - åŸ·è¡Œæ¨¡å¼: ç„¡è²æ¨¡å¼ï¼ˆèƒŒæ™¯åŸ·è¡Œï¼‰echo.echo æ‚¨å¯ä»¥åœ¨ã€Œå·¥ä½œæŽ’ç¨‹å™¨ã€ä¸­ä¿®æ”¹é€²éšŽè¨­å®šecho.pausegoto :end:startup_folderecho.echo [å•Ÿå‹•è³‡æ–™å¤¾è¨­å®š]set "STARTUP_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"set "SHORTCUT_PATH=%STARTUP_DIR%\FlaskBackup.lnk"REM å»ºç«‹å•Ÿå‹•è…³æœ¬set "STARTUP_SCRIPT=%SCRIPT_DIR%start_backup_silent.bat"echo @echo off > "%STARTUP_SCRIPT%"echo cd /d "%SCRIPT_DIR%" >> "%STARTUP_SCRIPT%"echo start /min "" pythonw flask_multi_backup.py --silent >> "%STARTUP_SCRIPT%"REM å»ºç«‹æ·å¾‘ï¼ˆä½¿ç”¨ PowerShellï¼‰powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%SHORTCUT_PATH%'); $Shortcut.TargetPath = '%STARTUP_SCRIPT%'; $Shortcut.WorkingDirectory = '%SCRIPT_DIR%'; $Shortcut.WindowStyle = 7; $Shortcut.Save()" >nul 2>&1if errorlevel 1 (    echo [éŒ¯èª¤] å»ºç«‹æ·å¾‘å¤±æ•—    pause    exit /b 1)echo [æˆåŠŸ] å•Ÿå‹•é …ç›®å·²å»ºç«‹ï¼echo   ä½ç½®: %SHORTCUT_PATH%echo.echo ä¸‹æ¬¡ç™»å…¥æ™‚å°‡è‡ªå‹•å•Ÿå‹•å‚™ä»½å·¥å…·echo.pausegoto :end:registryecho.echo [è¨»å†Šè¡¨è¨­å®š]echo æ­£åœ¨å¯«å…¥è¨»å†Šè¡¨...set "STARTUP_SCRIPT=%SCRIPT_DIR%start_backup_silent.bat"echo @echo off > "%STARTUP_SCRIPT%"echo cd /d "%SCRIPT_DIR%" >> "%STARTUP_SCRIPT%"echo start /min "" pythonw flask_multi_backup.py --silent >> "%STARTUP_SCRIPT%"REM å¯«å…¥ Run éµreg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "FlaskMultiBackup" /t REG_SZ /d "\"%STARTUP_SCRIPT%\"" /f >nul 2>&1if errorlevel 1 (    echo [éŒ¯èª¤] å¯«å…¥è¨»å†Šè¡¨å¤±æ•—ï¼Œè«‹ä»¥ç³»çµ±ç®¡ç†å“¡èº«åˆ†åŸ·è¡Œ    pause    exit /b 1)echo [æˆåŠŸ] è¨»å†Šè¡¨é …ç›®å·²å»ºç«‹ï¼echo   éµå€¼: HKCU\Software\Microsoft\Windows\CurrentVersion\Run\FlaskMultiBackupecho.pausegoto :end:windows_serviceecho.echo [Windows æœå‹™è¨­å®š]echo æ³¨æ„ï¼šæ­¤é¸é …éœ€è¦é¡å¤–å®‰è£ pywin32 å¥—ä»¶echo.REM æª¢æŸ¥ pywin32%PYTHON_CMD% -c "import win32service" >nul 2>&1if errorlevel 1 (    echo [æç¤º] éœ€è¦å®‰è£ pywin32 å¥—ä»¶    echo æ­£åœ¨å®‰è£...    pip install pywin32    if errorlevel 1 (        echo [éŒ¯èª¤] å®‰è£å¤±æ•—ï¼Œè«‹æ‰‹å‹•åŸ·è¡Œ: pip install pywin32        pause        exit /b 1    ))REM å»ºç«‹æœå‹™å®‰è£è…³æœ¬set "SERVICE_SCRIPT=%SCRIPT_DIR%install_service.py"echo import sys > "%SERVICE_SCRIPT%"echo import os >> "%SERVICE_SCRIPT%"echo sys.path.insert(0, r'%SCRIPT_DIR%.'[:-1]) >> "%SERVICE_SCRIPT%"echo. >> "%SERVICE_SCRIPT%"echo from flask_multi_backup import FlaskMultiBackupApp >> "%SERVICE_SCRIPT%"echo import win32serviceutil >> "%SERVICE_SCRIPT%"echo import win32service >> "%SERVICE_SCRIPT%"echo import win32event >> "%SERVICE_SCRIPT%"echo import servicemanager >> "%SERVICE_SCRIPT%"echo import socket >> "%SERVICE_SCRIPT%"echo. >> "%SERVICE_SCRIPT%"echo class FlaskBackupService(win32serviceutil.ServiceFramework): >> "%SERVICE_SCRIPT%"echo     _svc_name_ = 'FlaskMultiBackupService' >> "%SERVICE_SCRIPT%"echo     _svc_display_name_ = 'Flask Multi Backup Service' >> "%SERVICE_SCRIPT%"echo     _svc_description_ = 'è‡ªå‹•å‚™ä»½ Flask å°ˆæ¡ˆçš„èƒŒæ™¯æœå‹™' >> "%SERVICE_SCRIPT%"echo. >> "%SERVICE_SCRIPT%"echo     def __init__(self, args): >> "%SERVICE_SCRIPT%"echo         win32serviceutil.ServiceFramework.__init__(self, args) >> "%SERVICE_SCRIPT%"echo         self.stop_event = win32event.CreateEvent(None, 0, 0, None) >> "%SERVICE_SCRIPT%"echo         socket.setdefaulttimeout(60) >> "%SERVICE_SCRIPT%"echo. >> "%SERVICE_SCRIPT%"echo     def SvcStop(self): >> "%SERVICE_SCRIPT%"echo         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING) >> "%SERVICE_SCRIPT%"echo         win32event.SetEvent(self.stop_event) >> "%SERVICE_SCRIPT%"echo. >> "%SERVICE_SCRIPT%"echo     def SvcDoRun(self): >> "%SERVICE_SCRIPT%"echo         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, >> "%SERVICE_SCRIPT%"echo                               servicemanager.PYS_SERVICE_STARTED, (self._svc_name_, '')) >> "%SERVICE_SCRIPT%"echo         app = FlaskMultiBackupApp() >> "%SERVICE_SCRIPT%"echo         app.config['silent_mode'] = True >> "%SERVICE_SCRIPT%"echo         app.config['auto_backup'] = True >> "%SERVICE_SCRIPT%"echo         app.backup_all_projects() >> "%SERVICE_SCRIPT%"echo         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE) >> "%SERVICE_SCRIPT%"echo         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, >> "%SERVICE_SCRIPT%"echo                               servicemanager.PYS_SERVICE_STOPPED, (self._svc_name_, '')) >> "%SERVICE_SCRIPT%"echo. >> "%SERVICE_SCRIPT%"echo if __name__ == '__main__': >> "%SERVICE_SCRIPT%"echo     if len(sys.argv) == 1: >> "%SERVICE_SCRIPT%"echo         servicemanager.Initialize() >> "%SERVICE_SCRIPT%"echo         servicemanager.PrepareToHostSingle(FlaskBackupService) >> "%SERVICE_SCRIPT%"echo         servicemanager.StartServiceCtrlDispatcher() >> "%SERVICE_SCRIPT%"echo     else: >> "%SERVICE_SCRIPT%"echo         win32serviceutil.HandleCommandLine(FlaskBackupService) >> "%SERVICE_SCRIPT%"echo æ­£åœ¨å®‰è£æœå‹™...python "%SERVICE_SCRIPT%" install >nul 2>&1python "%SERVICE_SCRIPT%" start >nul 2>&1if errorlevel 1 (    echo [éŒ¯èª¤] æœå‹™å®‰è£å¤±æ•—ï¼Œè«‹ä»¥ç³»çµ±ç®¡ç†å“¡èº«åˆ†åŸ·è¡Œ    pause    exit /b 1)echo [æˆåŠŸ] æœå‹™å·²å®‰è£ä¸¦å•Ÿå‹•ï¼echo   æœå‹™åç¨±: FlaskMultiBackupServiceecho.echo ç®¡ç†å‘½ä»¤ï¼šecho   å•Ÿå‹•: python install_service.py startecho   åœæ­¢: python install_service.py stopecho   ç§»é™¤: python install_service.py removeecho.pausegoto :end:remove_allecho.echo [ç§»é™¤æ‰€æœ‰è‡ªå‹•å•Ÿå‹•è¨­å®š]echo.REM ç§»é™¤å·¥ä½œæŽ’ç¨‹å™¨echo ç§»é™¤å·¥ä½œæŽ’ç¨‹å™¨é …ç›®...schtasks /delete /tn "FlaskMultiBackup" /f >nul 2>&1REM ç§»é™¤å•Ÿå‹•è³‡æ–™å¤¾æ·å¾‘echo ç§»é™¤å•Ÿå‹•è³‡æ–™å¤¾é …ç›®...del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\FlaskBackup.lnk" >nul 2>&1REM ç§»é™¤è¨»å†Šè¡¨echo ç§»é™¤è¨»å†Šè¡¨é …ç›®...reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "FlaskMultiBackup" /f >nul 2>&1REM åœæ­¢ä¸¦ç§»é™¤æœå‹™echo ç§»é™¤ Windows æœå‹™...python "%SCRIPT_DIR%install_service.py" stop >nul 2>&1python "%SCRIPT_DIR%install_service.py" remove >nul 2>&1echo [å®Œæˆ] æ‰€æœ‰è‡ªå‹•å•Ÿå‹•è¨­å®šå·²ç§»é™¤echo.pausegoto :end:cancelecho æ“ä½œå·²å–æ¶ˆtimeout /t 2 >nulgoto :end:invalidecho ç„¡æ•ˆçš„é¸é …timeout /t 2 >nulgoto :end:endexit /b 0
+@echo off
+title Flask ³Æ¥÷¤u¨ã - Windows ¶}¾÷¦Û°Ê°õ¦æ³]©w
+cls
+
+echo ==========================================
+echo  Flask ¦h±M®×³Æ¥÷¤u¨ã - ¦Û°Ê±Ò°Ê³]©w
+echo ==========================================
+echo.
+
+REM Àò¨ú·í«e¥Ø¿ý
+set "SCRIPT_DIR=%~dp0"
+set "SCRIPT_PATH=%SCRIPT_DIR%flask_multi_backup.py"
+set "PYTHON_CMD=pythonw"
+
+REM ÀË¬d Python ¬O§_¦w¸Ë
+%PYTHON_CMD% --version >nul 2>&1
+if errorlevel 1 (
+    echo [¿ù»~] ¥¼§ä¨ì pythonw.exe¡A½Ð½T»{ Python ¤w¦w¸Ë¨Ã¥[¤JÀô¹ÒÅÜ¼Æ
+    pause
+    exit /b 1
+)
+
+echo °»´ú¨ì Python ¦w¸Ë
+echo.
+echo ½Ð¿ï¾Ü³]©w¤è¦¡¡G
+echo.
+echo  [1] ¤u§@±Æµ{¾¹ (±ÀÂË) - ¥i³]©wÄ²µo±ø¥ó¡B©µ¿ð±Ò°Ê
+echo  [2] ±Ò°Ê¸ê®Æ§¨ - ³ÌÂ²³æ¡Aµn¤J®É¦Û°Ê°õ¦æ
+echo  [3] µù¥Uªí Run Áä - ¨t²Î¯Å¦Û°Ê±Ò°Ê
+echo  [4] «Ø¥ß Windows ªA°È - ­I´º°õ¦æ¡AµL»Ýµn¤J
+echo  [5] ²¾°£©Ò¦³¦Û°Ê±Ò°Ê³]©w
+echo  [0] ¨ú®ø
+echo.
+
+set /p choice="½Ð¿é¤J¿ï¶µ (0-5): "
+
+if "%choice%"=="1" goto :task_scheduler
+if "%choice%"=="2" goto :startup_folder
+if "%choice%"=="3" goto :registry
+if "%choice%"=="4" goto :windows_service
+if "%choice%"=="5" goto :remove_all
+if "%choice%"=="0" goto :cancel
+goto :invalid
+
+:task_scheduler
+echo.
+echo [¤u§@±Æµ{¾¹³]©w]
+echo ¥¿¦b«Ø¥ß±Æµ{¤u§@...
+
+REM «Ø¥ß±Ò°Ê¸}¥»
+set "STARTUP_SCRIPT=%SCRIPT_DIR%start_backup_silent.bat"
+echo @echo off > "%STARTUP_SCRIPT%"
+echo cd /d "%SCRIPT_DIR%" >> "%STARTUP_SCRIPT%"
+echo start /min "" pythonw flask_multi_backup.py --silent >> "%STARTUP_SCRIPT%"
+
+REM §R°£ÂÂªº±Æµ{¤u§@¡]¦pªG¦s¦b¡^
+schtasks /delete /tn "FlaskMultiBackup" /f >nul 2>&1
+
+REM «Ø¥ß·sªº±Æµ{¤u§@¡]µn¤J®É±Ò°Ê¡A©µ¿ð 30 ¬í¡^
+schtasks /create /tn "FlaskMultiBackup" /tr "\"%STARTUP_SCRIPT%\"" /sc onlogon /delay 0000:30 /rl highest /f >nul 2>&1
+
+if errorlevel 1 (
+    echo [¿ù»~] «Ø¥ß±Æµ{¤u§@¥¢±Ñ¡A½Ð¥H¨t²ÎºÞ²z­û¨­¤À°õ¦æ
+    pause
+    exit /b 1
+)
+
+echo [¦¨¥\] ±Æµ{¤u§@¤w«Ø¥ß¡I
+echo.
+echo ³]©w¤º®e¡G
+echo   - ¤u§@¦WºÙ: FlaskMultiBackup
+echo   - Ä²µo±ø¥ó: ¨Ï¥ÎªÌµn¤J®É
+echo   - ©µ¿ð±Ò°Ê: 30 ¬í
+echo   - °õ¦æÅv­­: ³Ì°ªÅv­­
+echo   - °õ¦æ¼Ò¦¡: µLÁn¼Ò¦¡¡]­I´º°õ¦æ¡^
+echo.
+echo ±z¥i¥H¦b¡u¤u§@±Æµ{¾¹¡v¤¤­×§ï¶i¶¥³]©w
+echo.
+pause
+goto :end
+
+:startup_folder
+echo.
+echo [±Ò°Ê¸ê®Æ§¨³]©w]
+
+set "STARTUP_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "SHORTCUT_PATH=%STARTUP_DIR%\FlaskBackup.lnk"
+
+REM «Ø¥ß±Ò°Ê¸}¥»
+set "STARTUP_SCRIPT=%SCRIPT_DIR%start_backup_silent.bat"
+echo @echo off > "%STARTUP_SCRIPT%"
+echo cd /d "%SCRIPT_DIR%" >> "%STARTUP_SCRIPT%"
+echo start /min "" pythonw flask_multi_backup.py --silent >> "%STARTUP_SCRIPT%"
+
+REM «Ø¥ß±¶®|¡]¨Ï¥Î PowerShell¡^
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%SHORTCUT_PATH%'); $Shortcut.TargetPath = '%STARTUP_SCRIPT%'; $Shortcut.WorkingDirectory = '%SCRIPT_DIR%'; $Shortcut.WindowStyle = 7; $Shortcut.Save()" >nul 2>&1
+
+if errorlevel 1 (
+    echo [¿ù»~] «Ø¥ß±¶®|¥¢±Ñ
+    pause
+    exit /b 1
+)
+
+echo [¦¨¥\] ±Ò°Ê¶µ¥Ø¤w«Ø¥ß¡I
+echo   ¦ì¸m: %SHORTCUT_PATH%
+echo.
+echo ¤U¦¸µn¤J®É±N¦Û°Ê±Ò°Ê³Æ¥÷¤u¨ã
+echo.
+pause
+goto :end
+
+:registry
+echo.
+echo [µù¥Uªí³]©w]
+echo ¥¿¦b¼g¤Jµù¥Uªí...
+
+set "STARTUP_SCRIPT=%SCRIPT_DIR%start_backup_silent.bat"
+echo @echo off > "%STARTUP_SCRIPT%"
+echo cd /d "%SCRIPT_DIR%" >> "%STARTUP_SCRIPT%"
+echo start /min "" pythonw flask_multi_backup.py --silent >> "%STARTUP_SCRIPT%"
+
+REM ¼g¤J Run Áä
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "FlaskMultiBackup" /t REG_SZ /d "\"%STARTUP_SCRIPT%\"" /f >nul 2>&1
+
+if errorlevel 1 (
+    echo [¿ù»~] ¼g¤Jµù¥Uªí¥¢±Ñ¡A½Ð¥H¨t²ÎºÞ²z­û¨­¤À°õ¦æ
+    pause
+    exit /b 1
+)
+
+echo [¦¨¥\] µù¥Uªí¶µ¥Ø¤w«Ø¥ß¡I
+echo   Áä­È: HKCU\Software\Microsoft\Windows\CurrentVersion\Run\FlaskMultiBackup
+echo.
+pause
+goto :end
+
+:windows_service
+echo.
+echo [Windows ªA°È³]©w]
+echo ª`·N¡G¦¹¿ï¶µ»Ý­nÃB¥~¦w¸Ë pywin32 ®M¥ó
+echo.
+
+REM ÀË¬d pywin32
+%PYTHON_CMD% -c "import win32service" >nul 2>&1
+if errorlevel 1 (
+    echo [´£¥Ü] »Ý­n¦w¸Ë pywin32 ®M¥ó
+    echo ¥¿¦b¦w¸Ë...
+    pip install pywin32
+    if errorlevel 1 (
+        echo [¿ù»~] ¦w¸Ë¥¢±Ñ¡A½Ð¤â°Ê°õ¦æ: pip install pywin32
+        pause
+        exit /b 1
+    )
+)
+
+REM «Ø¥ßªA°È¦w¸Ë¸}¥»
+set "SERVICE_SCRIPT=%SCRIPT_DIR%install_service.py"
+echo import sys > "%SERVICE_SCRIPT%"
+echo import os >> "%SERVICE_SCRIPT%"
+echo sys.path.insert(0, r'%SCRIPT_DIR%.'[:-1]) >> "%SERVICE_SCRIPT%"
+echo. >> "%SERVICE_SCRIPT%"
+echo from flask_multi_backup import FlaskMultiBackupApp >> "%SERVICE_SCRIPT%"
+echo import win32serviceutil >> "%SERVICE_SCRIPT%"
+echo import win32service >> "%SERVICE_SCRIPT%"
+echo import win32event >> "%SERVICE_SCRIPT%"
+echo import servicemanager >> "%SERVICE_SCRIPT%"
+echo import socket >> "%SERVICE_SCRIPT%"
+echo. >> "%SERVICE_SCRIPT%"
+echo class FlaskBackupService(win32serviceutil.ServiceFramework): >> "%SERVICE_SCRIPT%"
+echo     _svc_name_ = 'FlaskMultiBackupService' >> "%SERVICE_SCRIPT%"
+echo     _svc_display_name_ = 'Flask Multi Backup Service' >> "%SERVICE_SCRIPT%"
+echo     _svc_description_ = '¦Û°Ê³Æ¥÷ Flask ±M®×ªº­I´ºªA°È' >> "%SERVICE_SCRIPT%"
+echo. >> "%SERVICE_SCRIPT%"
+echo     def __init__(self, args): >> "%SERVICE_SCRIPT%"
+echo         win32serviceutil.ServiceFramework.__init__(self, args) >> "%SERVICE_SCRIPT%"
+echo         self.stop_event = win32event.CreateEvent(None, 0, 0, None) >> "%SERVICE_SCRIPT%"
+echo         socket.setdefaulttimeout(60) >> "%SERVICE_SCRIPT%"
+echo. >> "%SERVICE_SCRIPT%"
+echo     def SvcStop(self): >> "%SERVICE_SCRIPT%"
+echo         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING) >> "%SERVICE_SCRIPT%"
+echo         win32event.SetEvent(self.stop_event) >> "%SERVICE_SCRIPT%"
+echo. >> "%SERVICE_SCRIPT%"
+echo     def SvcDoRun(self): >> "%SERVICE_SCRIPT%"
+echo         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, >> "%SERVICE_SCRIPT%"
+echo                               servicemanager.PYS_SERVICE_STARTED, (self._svc_name_, '')) >> "%SERVICE_SCRIPT%"
+echo         app = FlaskMultiBackupApp() >> "%SERVICE_SCRIPT%"
+echo         app.config['silent_mode'] = True >> "%SERVICE_SCRIPT%"
+echo         app.config['auto_backup'] = True >> "%SERVICE_SCRIPT%"
+echo         app.backup_all_projects() >> "%SERVICE_SCRIPT%"
+echo         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE) >> "%SERVICE_SCRIPT%"
+echo         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, >> "%SERVICE_SCRIPT%"
+echo                               servicemanager.PYS_SERVICE_STOPPED, (self._svc_name_, '')) >> "%SERVICE_SCRIPT%"
+echo. >> "%SERVICE_SCRIPT%"
+echo if __name__ == '__main__': >> "%SERVICE_SCRIPT%"
+echo     if len(sys.argv) == 1: >> "%SERVICE_SCRIPT%"
+echo         servicemanager.Initialize() >> "%SERVICE_SCRIPT%"
+echo         servicemanager.PrepareToHostSingle(FlaskBackupService) >> "%SERVICE_SCRIPT%"
+echo         servicemanager.StartServiceCtrlDispatcher() >> "%SERVICE_SCRIPT%"
+echo     else: >> "%SERVICE_SCRIPT%"
+echo         win32serviceutil.HandleCommandLine(FlaskBackupService) >> "%SERVICE_SCRIPT%"
+
+echo ¥¿¦b¦w¸ËªA°È...
+python "%SERVICE_SCRIPT%" install >nul 2>&1
+python "%SERVICE_SCRIPT%" start >nul 2>&1
+
+if errorlevel 1 (
+    echo [¿ù»~] ªA°È¦w¸Ë¥¢±Ñ¡A½Ð¥H¨t²ÎºÞ²z­û¨­¤À°õ¦æ
+    pause
+    exit /b 1
+)
+
+echo [¦¨¥\] ªA°È¤w¦w¸Ë¨Ã±Ò°Ê¡I
+echo   ªA°È¦WºÙ: FlaskMultiBackupService
+echo.
+echo ºÞ²z©R¥O¡G
+echo   ±Ò°Ê: python install_service.py start
+echo   °±¤î: python install_service.py stop
+echo   ²¾°£: python install_service.py remove
+echo.
+pause
+goto :end
+
+:remove_all
+echo.
+echo [²¾°£©Ò¦³¦Û°Ê±Ò°Ê³]©w]
+echo.
+
+REM ²¾°£¤u§@±Æµ{¾¹
+echo ²¾°£¤u§@±Æµ{¾¹¶µ¥Ø...
+schtasks /delete /tn "FlaskMultiBackup" /f >nul 2>&1
+
+REM ²¾°£±Ò°Ê¸ê®Æ§¨±¶®|
+echo ²¾°£±Ò°Ê¸ê®Æ§¨¶µ¥Ø...
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\FlaskBackup.lnk" >nul 2>&1
+
+REM ²¾°£µù¥Uªí
+echo ²¾°£µù¥Uªí¶µ¥Ø...
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "FlaskMultiBackup" /f >nul 2>&1
+
+REM °±¤î¨Ã²¾°£ªA°È
+echo ²¾°£ Windows ªA°È...
+python "%SCRIPT_DIR%install_service.py" stop >nul 2>&1
+python "%SCRIPT_DIR%install_service.py" remove >nul 2>&1
+
+echo [§¹¦¨] ©Ò¦³¦Û°Ê±Ò°Ê³]©w¤w²¾°£
+echo.
+pause
+goto :end
+
+:cancel
+echo ¾Þ§@¤w¨ú®ø
+timeout /t 2 >nul
+goto :end
+
+:invalid
+echo µL®Äªº¿ï¶µ
+timeout /t 2 >nul
+goto :end
+
+:end
+exit /b 0
