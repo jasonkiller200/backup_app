@@ -142,6 +142,7 @@ class FlaskMultiBackupApp:
             "last_backup_time": None,
             "last_backup_dates": {},  # 記錄每個時間點的最後備份日期 {time: date}
             "max_log_lines": 1000,  # 日誌區域最大行數
+            "max_backup_count": 2,  # 備份目的地保留的最大備份數量（0=不限制）
         }
 
         if CONFIG_FILE.exists():
@@ -309,6 +310,30 @@ class FlaskMultiBackupApp:
         ttk.Checkbutton(
             options_frame, text="壓縮為 ZIP 檔案", variable=self.compress_var
         ).pack(anchor=tk.W)
+
+        # 備份保留數量設定
+        retention_frame = ttk.Frame(options_frame)
+        retention_frame.pack(fill=tk.X, pady=(5, 0))
+
+        ttk.Label(retention_frame, text="保留最新備份數量 (0=不限制):").pack(side=tk.LEFT)
+        self.max_backup_count_var = tk.StringVar(
+            value=str(self.config.get("max_backup_count", 2))
+        )
+        if self.root is not None:
+            vcmd_retention = (self.root.register(self.validate_retention_count), "%P")
+        else:
+            vcmd_retention = None
+        self.retention_spinbox = ttk.Spinbox(
+            retention_frame,
+            from_=0,
+            to=100,
+            textvariable=self.max_backup_count_var,
+            width=10,
+            validate="key" if vcmd_retention else "none",
+            validatecommand=vcmd_retention if vcmd_retention else "",
+        )
+        self.retention_spinbox.pack(side=tk.LEFT, padx=5)
+        ttk.Label(retention_frame, text="個").pack(side=tk.LEFT)
 
         # 自動備份設定
         auto_frame = ttk.LabelFrame(self.settings_tab, text="自動備份", padding=10)
@@ -599,6 +624,16 @@ class FlaskMultiBackupApp:
         except ValueError:
             return False
 
+    def validate_retention_count(self, value: str) -> bool:
+        """驗證保留備份數量輸入"""
+        if value == "":
+            return True
+        try:
+            num = int(value)
+            return 0 <= num <= 100
+        except ValueError:
+            return False
+
     def on_schedule_mode_changed(self, event):
         """當備份模式改變時"""
         mode = self.schedule_mode_var.get()
@@ -742,6 +777,18 @@ class FlaskMultiBackupApp:
         except ValueError as e:
             messagebox.showerror("錯誤", f"備份間隔設定無效: {e}")
             logger.error(f"備份間隔設定無效: {e}")
+            return
+
+        # 驗證並儲存保留備份數量
+        try:
+            max_count = int(self.max_backup_count_var.get())
+            if 0 <= max_count <= 100:
+                self.config["max_backup_count"] = max_count
+            else:
+                raise ValueError("保留數量必須在 0-100 之間")
+        except ValueError as e:
+            messagebox.showerror("錯誤", f"保留備份數量設定無效: {e}")
+            logger.error(f"保留備份數量設定無效: {e}")
             return
 
         # 儲存固定時間列表
@@ -976,6 +1023,11 @@ class FlaskMultiBackupApp:
                 self.msg_queue.put(("status", "備份完成！"))
                 self.log(f"\n✅ 所有專案備份完成！共 {copied_files} 個檔案")
                 logger.info(f"備份完成，共 {copied_files} 個檔案")
+
+                # 自動清理舊備份
+                cleanup_msg = self.cleanup_old_backups(dst_base)
+                if cleanup_msg:
+                    self.log(cleanup_msg)
 
                 if not self.config.get("silent_mode", False):
                     self.msg_queue.put(
@@ -1434,6 +1486,93 @@ class FlaskMultiBackupApp:
         self.log(f"執行自動備份 ({trigger_type})...")
         logger.info(f"觸發自動備份 ({trigger_type})")
         self.start_backup_thread()
+
+    def cleanup_old_backups(self, backup_base_path: str) -> Optional[str]:
+        """
+        清理舊備份，只保留最新的 N 個備份。
+        透過備份資料夾/ZIP 的名稱時間戳記排序，刪除最舊的。
+        回傳清理結果的日誌訊息，若無需清理則回傳 None。
+        """
+        max_count = self.config.get("max_backup_count", 2)
+        if max_count <= 0:
+            logger.debug("備份保留數量設為 0（不限制），跳過清理")
+            return None
+
+        backup_base = Path(backup_base_path)
+        if not backup_base.exists():
+            logger.warning(f"備份目的地不存在，跳過清理: {backup_base}")
+            return None
+
+        # 收集所有 FlaskBackup_ 開頭的資料夾和 ZIP 檔
+        backup_items = []
+        backup_pattern = re.compile(r"^FlaskBackup_(\d{8}_\d{6})$")
+        zip_pattern = re.compile(r"^FlaskBackup_(\d{8}_\d{6})\.zip$")
+
+        for item in backup_base.iterdir():
+            if item.is_dir():
+                match = backup_pattern.match(item.name)
+                if match:
+                    try:
+                        timestamp = datetime.strptime(match.group(1), "%Y%m%d_%H%M%S")
+                        backup_items.append((timestamp, item))
+                    except ValueError:
+                        continue
+            elif item.is_file() and item.suffix == ".zip":
+                # 嘗試匹配 ZIP 檔案名稱
+                zip_name_match = zip_pattern.match(item.name)
+                if zip_name_match:
+                    try:
+                        timestamp = datetime.strptime(zip_name_match.group(1), "%Y%m%d_%H%M%S")
+                        backup_items.append((timestamp, item))
+                    except ValueError:
+                        continue
+
+        if len(backup_items) <= max_count:
+            logger.debug(f"備份數量 ({len(backup_items)}) 未超過上限 ({max_count})，無需清理")
+            return None
+
+        # 依時間戳記排序（最新的在前）
+        backup_items.sort(key=lambda x: x[0], reverse=True)
+
+        # 要刪除的項目（保留前 N 個，刪除其餘的）
+        items_to_delete = backup_items[max_count:]
+        deleted_count = 0
+        freed_size = 0
+
+        for timestamp, item in items_to_delete:
+            try:
+                if item.is_dir():
+                    # 計算資料夾大小
+                    dir_size = sum(f.stat().st_size for f in item.rglob("*") if f.is_file())
+                    freed_size += dir_size
+                    shutil.rmtree(item)
+                    deleted_count += 1
+                    logger.info(f"已刪除舊備份資料夾: {item.name}")
+                elif item.is_file():
+                    freed_size += item.stat().st_size
+                    item.unlink()
+                    deleted_count += 1
+                    logger.info(f"已刪除舊備份檔案: {item.name}")
+            except Exception as e:
+                logger.error(f"刪除舊備份失敗 {item}: {e}")
+                self.log(f"  ⚠️ 刪除舊備份失敗: {item.name} - {e}")
+
+        if deleted_count > 0:
+            # 格式化釋放的空間大小
+            if freed_size >= 1024 * 1024 * 1024:
+                size_str = f"{freed_size / (1024 * 1024 * 1024):.2f} GB"
+            elif freed_size >= 1024 * 1024:
+                size_str = f"{freed_size / (1024 * 1024):.2f} MB"
+            elif freed_size >= 1024:
+                size_str = f"{freed_size / 1024:.2f} KB"
+            else:
+                size_str = f"{freed_size} Bytes"
+
+            msg = f"🗑️ 已清理 {deleted_count} 個舊備份，釋放 {size_str} 空間（保留最新 {max_count} 個）"
+            logger.info(msg)
+            return msg
+
+        return None
 
 
 def main():
